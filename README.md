@@ -1,6 +1,8 @@
 # mtad-tf
 Implementation of MTAD-TF: Multivariate Time Series Anomaly Detection Using the Combination of Temporal Pattern and Feature Pattern
 
+https://www.hindawi.com/journals/complexity/2020/8846608/
+
 this is a draft commit, someone maybe interested
 
 steps
