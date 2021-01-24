@@ -9,5 +9,5 @@ steps
 - train model. model for each file, 28 of them for SMD. I am just focusing on server anomaly, but MSL and SMAP should be used as well
 - run predict with RMS_loss option to generate loss file. high loss indicates anomaly. 
 
-i will post another repository for EVT POT parameter estimator and threshold predictor for anomaly flagging. so use RMS_loss as input to log likelihood model to estimate sigma and gamma of generalized paretto distribution
+I will post another repository for EVT POT extreme value theory peak over threshold parameter estimator and threshold predictor for anomaly flagging. So use RMS_loss as input to log likelihood model of GPD generalized pareto distribution to estimate sigma and gamma
 
