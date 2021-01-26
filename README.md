@@ -15,12 +15,13 @@ My setup:
 Steps:
 
 1. Download ServerMachineDataset from https://github.com/NetManAIOps/OmniAnomaly
+Put ServerMachineDataset here at the root of the project
 
 2. Prepare tfrecords train and test data
 train:
 python prepare_data.py --files_path=ServerMachineDataset/train --tfrecords_file=gs://anomaly_detection/mtad_tf/data/train/{}.tfrecords
 test:
-python prepare_data.py --files_path=ServerMachineDataset/test --label_path=/work/datasets/ServerMachineDataset/test_label --tfrecords_file=gs://anomaly_detection/mtad_tf/data/test/{}.tfrecords
+python prepare_data.py --files_path=ServerMachineDataset/test --label_path=ServerMachineDataset/test_label --tfrecords_file=gs://anomaly_detection/mtad_tf/data/test/{}.tfrecords
 
 3. Train model for each machine dataset, 28 of them. Paper says 100 epochs, so I use 78k steps
 
@@ -30,3 +31,5 @@ python training.py --action=TRAIN --train_file=gs://anomaly_detection/mtad_tf/da
 python training.py --action=PREDICT --test_file=gs://anomaly_detection/mtad_tf/data/test/machine-1-1.tfrecords --prediction_task=RMS_loss --output_dir=gs://anomaly_detection/mtad_tf/output/machine-1-1
 
 5. Use my another repository EVT_POT to calculate threshold. RMS_loss.csv is an input for that
+
+6. Use notebook to see RMS_loss.csv, initial threshold and anomaly threshold. Adjust those values in the notebook 
