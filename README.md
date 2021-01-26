@@ -18,9 +18,11 @@ Steps:
 Put ServerMachineDataset here at the root of the project
 
 2. Prepare tfrecords train and test data
+
 train:
 
 python prepare_data.py --files_path=ServerMachineDataset/train --tfrecords_file=gs://anomaly_detection/mtad_tf/data/train/{}.tfrecords
+
 test:
 
 python prepare_data.py --files_path=ServerMachineDataset/test --label_path=ServerMachineDataset/test_label --tfrecords_file=gs://anomaly_detection/mtad_tf/data/test/{}.tfrecords
