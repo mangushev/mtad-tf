@@ -131,9 +131,6 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
           init_string = ", *INIT_FROM_CKPT*"
         tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape, init_string)
 
-      #calculated_learning_rate = tf.math.pow(tf.cast(params["hidden_size"], dtype=tf.float32), -0.5)*tf.math.minimum(tf.math.pow(tf.cast(tf.compat.v1.train.get_global_step()+1, dtype=tf.float32), -0.5), tf.cast(tf.compat.v1.train.get_global_step()+1, dtype=tf.float32)*tf.math.pow(4000.0, -1.5))
-      #learning_rate = tf.compat.v1.train.exponential_decay(starter_learning_rate, global_step, 10000, 0.96, staircase=True)
-
       calculated_learning_rate = tf.compat.v1.train.exponential_decay(learning_rate, tf.compat.v1.train.get_global_step()+1, 10000, 0.75, staircase=False)
 
       #effective_learning_rate = calculated_learning_rate
@@ -172,24 +169,24 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
         logging_hook = tf.train.LoggingTensorHook({"loss": total_loss, "step": tf.train.get_global_step()}, every_n_iter=1)
         training_hooks = [logging_hook]
 
-      return tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
         mode, predictions=None, loss=total_loss, train_op=train_op, eval_metrics=None,
         export_outputs=None, scaffold_fn=scaffold_fn, host_call=None, training_hooks=training_hooks,
         evaluation_hooks=None, prediction_hooks=None)
 
     elif mode == tf.estimator.ModeKeys.EVAL:
 
-      def metric_fn(per_example_loss, label_ids, logits, is_real_example):
+      def metric_fn(per_example_loss, labels, logits, is_real_example):
         predictions = tf.cast(tf.math.greater(per_example_loss, params["threshold"]), tf.int32)
-        presision = tf.compat.v1.metrics.precision(labels=anomaly, predictions=predictions)
-        recall = tf.compat.v1.metrics.precision(labels=anomaly, predictions=predictions)
-        f1 = (2 * presision * recall) / (presision + recall + 1e-12)
+        presision = tf.compat.v1.metrics.precision(labels=labels, predictions=predictions)
+        recall = tf.compat.v1.metrics.precision(labels=labels, predictions=predictions)
+        #f1 = (2 * presision * recall) / (presision + recall + 1e-12)
+        #    "eval_f1": f1,
         loss = tf.metrics.mean(values=per_example_loss, weights=None)
         return {
             "eval_presision": presision,
             "eval_recall": recall,
-            "eval_f1": f1,
-            "eval_loss": loss,
+            "eval_loss": loss
         }
 
       eval_metrics = (metric_fn,
@@ -202,16 +199,16 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
 
     else:
       if params["prediction_task"] == "RMS_loss":
-        spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+        output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={'RMS_loss': per_example_loss
                       })
       else:
-        spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+        output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={'next_feature': model.next_feature
                     })
-      return spec 
+    return output_spec 
 
   return model_fn   
 
@@ -287,7 +284,7 @@ def main():
     results = estimator.evaluate(input_fn=make_input_fn(FLAGS.test_file, is_training=False, drop_reminder=eval_drop_remainder), steps=None)
 
     for key in sorted(results.keys()):
-      tf.logging.info("  %s = %s", key, str(result[key]))
+      tf.logging.info("  %s = %s", key, str(results[key]))
 
   if FLAGS.action == 'PREDICT':
     predict_drop_remainder = True if FLAGS.use_tpu else False
@@ -370,7 +367,7 @@ if __name__ == '__main__':
             help='Time series window size.')
     parser.add_argument('--num_features', type=int, default=38,
             help='Computer instance metrics.')
-    parser.add_argument('--threshold', type=float, default=None,
+    parser.add_argument('--threshold', type=float, default=None, required=True,
             help='Anomaly cut-off threshold. It is different per model. POT model calculates this.')
 
     FLAGS, unparsed = parser.parse_known_args()
