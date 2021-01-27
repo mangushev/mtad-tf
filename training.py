@@ -178,13 +178,16 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
 
       def metric_fn(per_example_loss, labels, logits, is_real_example):
         predictions = tf.cast(tf.math.greater(per_example_loss, params["threshold"]), tf.int32)
-        presision = tf.compat.v1.metrics.precision(labels=labels, predictions=predictions)
+        accuracy = tf.compat.v1.metrics.accuracy(labels=labels, predictions=predictions)
+        precision = tf.compat.v1.metrics.precision(labels=labels, predictions=predictions)
+        #precision = tf.Print(precision1, [precision1], "Precision")
         recall = tf.compat.v1.metrics.precision(labels=labels, predictions=predictions)
-        #f1 = (2 * presision * recall) / (presision + recall + 1e-12)
+        #f1 = (2 * precision * recall) / (precision + recall + 1e-12)
         #    "eval_f1": f1,
         loss = tf.metrics.mean(values=per_example_loss, weights=None)
         return {
-            "eval_presision": presision,
+            "eval_accuracy": accuracy,
+            "eval_precision": precision,
             "eval_recall": recall,
             "eval_loss": loss
         }
@@ -206,7 +209,7 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
       else:
         output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
-          predictions={'next_feature': model.next_feature
+          predictions={'anomaly': tf.cast(tf.math.greater(per_example_loss, params["threshold"]), tf.int32)
                     })
     return output_spec 
 
@@ -297,11 +300,10 @@ def main():
         for prediction in results:
           writer.write(str(prediction["RMS_loss"]) + "\n")
     else:
-      for prediction in results:
-        next_feature = prediction["next_feature"]
-        print (repr(next_feature))
-        #data = np.array(mel_spectrograms[:mel_length], 'float32')
-        #print (data.shape)
+      output_predict_file = os.path.join("./", "Anomaly.csv")
+      with tf.gfile.GFile(output_predict_file, "w") as writer:
+        for prediction in results:
+          writer.write(str(prediction["anomaly"]) + "\n")
 
 if __name__ == '__main__':
 
