@@ -7,10 +7,13 @@ THIS IS A DRAFT. I didn't finish evaluation
 
 I am discussing SMD only, but MSL and SMAP should be used as well
 
-My setup:
+Notes:
 -train and test data is generated to GCP
 -models are stored to GCP
 -"anomaly_detection" is my GCP storage
+-it takes 4 hours to train 1 model on 16vCPU 16GB(not this much memory is needed)
+-I used some very minor utility content from BERT. This is why I put BERT Licence
+-Do not use dropout. I found it makes loss higher
 
 Steps:
 
@@ -19,11 +22,11 @@ Put ServerMachineDataset here at the root of the project
 
 2. Prepare tfrecords train and test data
 
-train:
+Train:
 
 python prepare_data.py --files_path=ServerMachineDataset/train --tfrecords_file=gs://anomaly_detection/mtad_tf/data/train/{}.tfrecords
 
-test:
+Test:
 
 python prepare_data.py --files_path=ServerMachineDataset/test --label_path=ServerMachineDataset/test_label --tfrecords_file=gs://anomaly_detection/mtad_tf/data/test/{}.tfrecords
 
