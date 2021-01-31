@@ -11,6 +11,7 @@ import os
 import tensorflow as tf
 
 from model import MtadTF, get_shape_list
+from evaluate import calculate_metrics
 
 FLAGS = None
 
@@ -206,6 +207,12 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
           mode=mode,
           predictions={'RMS_loss': per_example_loss
                       })
+      elif params["prediction_task"] == "EVALUATE":
+        output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+          mode=mode,
+          predictions={'predicted': tf.cast(tf.math.greater(per_example_loss, params["threshold"]), tf.int32),
+                       'label': anomaly
+                    })
       else:
         output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
@@ -299,6 +306,18 @@ def main():
       with tf.gfile.GFile(output_predict_file, "w") as writer:
         for prediction in results:
           writer.write(str(prediction["RMS_loss"]) + "\n")
+    elif FLAGS.prediction_task == 'EVALUATE':
+      labels = []
+      anomalies = []
+      for prediction in results:
+        labels.append(prediction["label"])
+        anomalies.append(prediction["predicted"])
+
+      metrics = calculate_metrics(anomalies, labels, True)
+
+      tf.logging.info("  %s = %s", "threshold", FLAGS.threshold)
+      for key in sorted(metrics.keys()):
+        tf.logging.info("  %s = %s", key, str(metrics[key]))
     else:
       output_predict_file = os.path.join("./", "Anomaly.csv")
       with tf.gfile.GFile(output_predict_file, "w") as writer:
@@ -355,7 +374,7 @@ if __name__ == '__main__':
             help='Enable excessive variables screen outputs.')
     parser.add_argument('--action', default='PREDICT', choices=['TRAIN','EVALUATE','PREDICT'],
             help='An action to execure.')
-    parser.add_argument('--prediction_task', default='anomaly_data', choices=['anomaly_data', 'RMS_loss'],
+    parser.add_argument('--prediction_task', default=None, choices=['RMS_loss', 'EVALUATE'],
             help='Values to predict.')
     parser.add_argument('--restore', default=False, action='store_true',
             help='Restore last checkpoint.')
