@@ -3,15 +3,27 @@ Implementation of MTAD-TF: Multivariate Time Series Anomaly Detection Using the 
 
 https://www.hindawi.com/journals/complexity/2020/8846608/
 
-I am discussing SMD only, but MSL and SMAP should be used as well
+Other papers
+
+Omnianomaly:
+
+https://www.researchgate.net/publication/334717291_Robust_Anomaly_Detection_for_Multivariate_Time_Series_through_Stochastic_Recurrent_Neural_Network
 
 Notes:
+
 -train and test data is generated to GCP
+
 -models are stored to GCP
+
 -"anomaly_detection" is my GCP storage
+
 -it takes 4 hours to train 1 model on 16vCPU 16GB(not this much memory is needed)
+
 -I used some very minor utility content from BERT. This is why I put BERT Licence
+
 -Do not use dropout. I found it makes loss higher
+
+-I am discussing SMD only, but MSL and SMAP should be used as well
 
 Training steps:
 
