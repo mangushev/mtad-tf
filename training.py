@@ -7,48 +7,12 @@ import re
 import argparse
 import sys
 import os
-#import logging
 import tensorflow as tf
 
 from model import MtadTF, get_shape_list
 from evaluate import calculate_metrics
 
 FLAGS = None
-
-#logger = logging.getLogger('tensorflow')
-#formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-#handler = logging.StreamHandler()
-#handler.setFormatter(formatter)
-#logger.addHandler(handler)
-#logger.propagate = False
-#logger.setLevel('ERROR')
-
-def get_assignment_map_from_checkpoint(tvars, init_checkpoint):
-  """Compute the union of the current variables and checkpoint variables."""
-  assignment_map = {}
-  initialized_variable_names = {}
-
-  name_to_variable = collections.OrderedDict()
-  for var in tvars:
-    name = var.name
-    m = re.match("^(.*):\\d+$", name)
-    if m is not None:
-      name = m.group(1)
-    name_to_variable[name] = var
-
-  init_vars = tf.train.list_variables(init_checkpoint)
-
-  assignment_map = collections.OrderedDict()
-  for x in init_vars:
-    (name, var) = (x[0], x[1])
-    if name not in name_to_variable:
-      continue
-    assignment_map[name] = name
-    initialized_variable_names[name] = 1
-    initialized_variable_names[name + ":0"] = 1
-
-  return (assignment_map, initialized_variable_names)
-
 
 def make_input_fn(filename, is_training, drop_reminder):
   """Returns an `input_fn` for train and eval."""
@@ -108,42 +72,14 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
 
     if mode == tf.estimator.ModeKeys.TRAIN:
 
-      tvars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
-
-      initialized_variable_names = {}
-      scaffold_fn = None
-      if init_checkpoint:
-        (assignment_map, initialized_variable_names
-        ) = get_assignment_map_from_checkpoint(tvars, init_checkpoint)
-        if use_tpu:
-
-          def tpu_scaffold():
-            tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
-            return tf.train.Scaffold()
-
-          scaffold_fn = tpu_scaffold
-        else:
-          tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
-
-      tf.logging.info("**** Trainable Variables ****")
-      for var in tvars:
-        init_string = ""
-        if var.name in initialized_variable_names:
-          init_string = ", *INIT_FROM_CKPT*"
-        tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape, init_string)
-
       calculated_learning_rate = tf.compat.v1.train.exponential_decay(learning_rate, tf.compat.v1.train.get_global_step()+1, 10000, 0.75, staircase=False)
 
       #effective_learning_rate = calculated_learning_rate
       effective_learning_rate = tf.Print(calculated_learning_rate, [calculated_learning_rate], "Calculated learning rate")
 
-      #loss = tf.math.sqrt(tf.compat.v1.losses.mean_squared_error(label, model.next_feature))
+      tvars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
 
-      #print ("all tvars")
-      #for i, v in enumerate(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)):
-      #  tf.logging.info("{}: {}".format(i, v))
-
-      #print ("selected tvars")
+      tf.logging.info("Trainable Variables")
       for i, v in enumerate(tvars):
         tf.logging.info("{}: {}".format(i, v))
 
@@ -172,7 +108,7 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
 
       output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
         mode, predictions=None, loss=total_loss, train_op=train_op, eval_metrics=None,
-        export_outputs=None, scaffold_fn=scaffold_fn, host_call=None, training_hooks=training_hooks,
+        export_outputs=None, scaffold_fn=None, host_call=None, training_hooks=training_hooks,
         evaluation_hooks=None, prediction_hooks=None)
 
     elif mode == tf.estimator.ModeKeys.EVAL:
@@ -224,11 +160,7 @@ def model_fn_builder(init_checkpoint, learning_rate, num_train_steps, use_tpu):
 
 def main():
   tf.logging.set_verbosity(tf.logging.INFO)
-
-  #logger.setLevel(FLAGS.logging)
   #tf.logging.set_verbosity(tf.logging.ERROR)
-
-  #logger.info("Running with parameters: {}".format(FLAGS))
 
   tpu_cluster_resolver = None
 
