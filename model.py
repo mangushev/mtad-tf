@@ -1,10 +1,4 @@
 
-#TODO:
-#check residual connections
-#dropout: gat
-#normalization
-#attention calculation
-
 import tensorflow as tf
 
 import sys
