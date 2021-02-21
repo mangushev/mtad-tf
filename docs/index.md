@@ -1,6 +1,6 @@
 # MTAD-TF implementation
 
-Repository: <a href="github.com/mangushev/mtad-tf">source repository</a>
+Please visit <a href="https://github.com/mangushev/mtad-tf">repository</a> to review sources.
 
 Implementation of MTAD-TF: Multivariate Time Series Anomaly Detection Using the Combination of Temporal Pattern and Feature Pattern
 
